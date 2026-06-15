@@ -1,0 +1,20 @@
+{
+  "googleApiKey": "",
+  "barikoiApiKey": "",
+  "defaultCity": "Dhaka",
+  "defaultPostcode": "1230",
+  "defaultCountry": "Bangladesh",
+  "googleDailySafetyLimit": 50,
+  "barikoiDailySafetyLimit": 100,
+  "fetchGoogle": true,
+  "fetchBarikoi": true,
+  "fetchOsm": true,
+  "barikoiTemplates": {
+    "reverse": "https://barikoi.xyz/v2/api/search/reverse/geocode?api_key={key}&longitude={lng}&latitude={lat}&district=true&post_code=true",
+    "nearbyCategory": "https://barikoi.xyz/v2/api/search/nearby/category/{category}/{lng}/{lat}/{radiusKm}?api_key={key}&limit={limit}",
+    "nearby": "https://barikoi.xyz/v2/api/search/nearby/{lng}/{lat}/{radiusKm}?api_key={key}&limit={limit}",
+    "autocomplete": "https://barikoi.xyz/v2/api/search/autocomplete/place?api_key={key}&q={query}",
+    "search": "https://barikoi.xyz/v2/api/search/place?api_key={key}&q={query}"
+  },
+  "googleAlwaysTryLegacy": true
+}

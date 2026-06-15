@@ -1,0 +1,65 @@
+{
+  "id": "zone_9887d80f5a",
+  "zone": {
+    "id": "zone_9887d80f5a",
+    "name": "osmtest",
+    "centerLat": 23.81065,
+    "centerLng": 90.42195,
+    "radius": 50,
+    "areaName": "",
+    "roadHint": "",
+    "houseNoHint": "",
+    "buildingHint": "",
+    "city": "Dhaka",
+    "postcode": "1230",
+    "thana": "",
+    "googleTypes": "school,restaurant,cafe,pharmacy,hospital,bank,supermarket,shopping_mall",
+    "googleKeywords": "office, software company, shop",
+    "barikoiCategories": "school,restaurant,shop,pharmacy,hospital,bank,mosque,office",
+    "maxResultsPerType": 8,
+    "createdAt": "2026-06-12T10:34:19.300Z",
+    "bounds": {
+      "south": 23.8102008,
+      "west": 90.4214591,
+      "north": 23.8110992,
+      "east": 90.4224409
+    },
+    "scanPreview": {
+      "type": "circle",
+      "center": {
+        "lat": 23.81065,
+        "lng": 90.42195
+      },
+      "radiusMeters": 50,
+      "bounds": {
+        "south": 23.8102008,
+        "west": 90.4214591,
+        "north": 23.8110992,
+        "east": 90.4224409
+      },
+      "note": "Fetch area is center + radius, not an official administrative boundary."
+    }
+  },
+  "sourceResults": [
+    {
+      "source": "osm",
+      "skipped": false,
+      "reason": "",
+      "rawCount": 1,
+      "recordCount": 0,
+      "errors": []
+    }
+  ],
+  "records": [],
+  "conflicts": [],
+  "applyPayload": [],
+  "stats": {
+    "total": 0,
+    "ready": 0,
+    "review": 0,
+    "fieldCheck": 0,
+    "low": 0,
+    "conflicts": 0
+  },
+  "generatedAt": "2026-06-12T10:34:19.382Z"
+}
