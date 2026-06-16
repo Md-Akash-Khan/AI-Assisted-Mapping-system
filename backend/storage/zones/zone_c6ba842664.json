@@ -1,0 +1,73 @@
+{
+  "id": "zone_c6ba842664",
+  "zone": {
+    "id": "zone_c6ba842664",
+    "name": "test",
+    "centerLat": 23.81065,
+    "centerLng": 90.42195,
+    "radius": 100,
+    "areaName": "",
+    "roadHint": "",
+    "houseNoHint": "",
+    "buildingHint": "",
+    "city": "Dhaka",
+    "postcode": "1230",
+    "thana": "",
+    "googleTypes": "school,restaurant,cafe,pharmacy,hospital,bank,supermarket,shopping_mall",
+    "googleKeywords": "office, software company, shop",
+    "barikoiCategories": "school,restaurant,shop,pharmacy,hospital,bank,mosque,office",
+    "maxResultsPerType": 8,
+    "createdAt": "2026-06-12T10:34:11.379Z",
+    "bounds": {
+      "south": 23.8097517,
+      "west": 90.4209681,
+      "north": 23.8115483,
+      "east": 90.4229319
+    },
+    "scanPreview": {
+      "type": "circle",
+      "center": {
+        "lat": 23.81065,
+        "lng": 90.42195
+      },
+      "radiusMeters": 100,
+      "bounds": {
+        "south": 23.8097517,
+        "west": 90.4209681,
+        "north": 23.8115483,
+        "east": 90.4229319
+      },
+      "note": "Fetch area is center + radius, not an official administrative boundary."
+    }
+  },
+  "sourceResults": [
+    {
+      "source": "google",
+      "skipped": true,
+      "reason": "Missing Google API key in backend settings",
+      "rawCount": 0,
+      "recordCount": 0,
+      "errors": []
+    },
+    {
+      "source": "barikoi",
+      "skipped": true,
+      "reason": "Missing Barikoi API key in backend settings",
+      "rawCount": 0,
+      "recordCount": 0,
+      "errors": []
+    }
+  ],
+  "records": [],
+  "conflicts": [],
+  "applyPayload": [],
+  "stats": {
+    "total": 0,
+    "ready": 0,
+    "review": 0,
+    "fieldCheck": 0,
+    "low": 0,
+    "conflicts": 0
+  },
+  "generatedAt": "2026-06-12T10:34:11.379Z"
+}

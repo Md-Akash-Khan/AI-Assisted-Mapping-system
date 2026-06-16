@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Map Zone Intelligence V3</title>
+  <link rel="stylesheet" href="/public/app.css" />
+</head>
+<body>
+  <div class="shell">
+    <aside class="side">
+      <div class="brand"><div class="logo">MZ</div><div><b>Map Zone Intelligence</b><span>V3 backend</span></div></div>
+      <nav>
+        <button class="nav active" data-view="zone">Zone Fetch</button>
+        <button class="nav" data-view="records">Fetched Records</button>
+        <button class="nav" data-view="conflicts">Conflict Board</button>
+        <button class="nav" data-view="apply">Apply Payload</button>
+        <button class="nav" data-view="settings">API Diagnostics</button>
+      </nav>
+      <div class="sideNote"><b>Safe workflow</b><br/>Fetch → normalize → review → apply one by one. No bulk auto-save.</div>
+    </aside>
+    <main class="main">
+      <header class="top">
+        <div><h1>Zone Intelligence Dashboard</h1><p>Fetch area data from Google, Barikoi and OSM; build Map Customizer-ready records.</p></div>
+        <div class="topActions"><button id="healthBtn">Check Backend</button><button id="refreshLatestBtn">Refresh Latest</button><button id="refreshZonesBtn">List Jobs</button></div>
+      </header>
+      <section class="metrics" id="metrics"></section>
+      <section class="view" id="view-zone">
+        <div class="grid two">
+          <div class="card">
+            <div class="cardHead"><h2>1. Define zone</h2><span>center + radius / visible map area</span></div>
+            <div class="formGrid">
+              <label>Zone name<input id="zoneName" value="Banani DOHS - sample zone" /></label>
+              <label>Center latitude<input id="centerLat" value="23.7946" /></label>
+              <label>Center longitude<input id="centerLng" value="90.4066" /></label>
+              <label>Radius meters<input id="radius" value="350" /></label>
+              <label>Area/Thana hint<input id="areaName" placeholder="Banani DOHS / Vatara / Dakkhinkhan" /></label>
+              <label>Road hint<input id="roadHint" placeholder="Lane 4 East / Pragati Shoroni Road" /></label>
+              <label>City<input id="city" value="Dhaka" /></label>
+              <label>Postcode<input id="postcode" placeholder="1212 / 1230" /></label>
+              <label>House no. hint<input id="houseNoHint" placeholder="45, 179 etc. Optional" /></label>
+              <label>Building hint<input id="buildingHint" placeholder="Akash Villa, ROLLA etc. Optional" /></label>
+            </div>
+            <div class="tip">Address rule: point name → house# → building name → road → area → city-postcode. Missing fields are skipped.</div>
+          </div>
+          <div class="card">
+            <div class="cardHead"><h2>2. Fetch settings</h2><span>cost-safe source control</span></div>
+            <div class="formGrid single">
+              <label>Google place types<input id="googleTypes" value="school,restaurant,cafe,pharmacy,hospital,bank,supermarket,shopping_mall" /></label>
+              <label>Google keyword discovery<input id="googleKeywords" value="office, software company, shop" /></label>
+              <label>Barikoi categories<input id="barikoiCategories" value="school,restaurant,shop,pharmacy,hospital,bank,mosque,office" /></label>
+              <label>Max results per type<input id="maxResultsPerType" value="8" /></label>
+            </div>
+            <div class="checks">
+              <label><input type="checkbox" id="fetchGoogle" checked/> Google Places Nearby</label>
+              <label><input type="checkbox" id="fetchBarikoi" checked/> Barikoi Nearby + Reverse</label>
+              <label><input type="checkbox" id="fetchOsm" checked/> OSM Overpass</label>
+            </div>
+            <div class="actions"><button class="primary" id="fetchZoneBtn">Fetch Zone Data</button><button id="loadSampleBtn">Load DOHS Sample</button></div>
+            <div class="scanPreview" id="scanPreview">No scan yet.</div>
+            <pre class="log" id="fetchLog">Ready.</pre>
+          </div>
+        </div>
+      </section>
+      <section class="view hidden" id="view-records">
+        <div class="card full">
+          <div class="cardHead"><h2>Fetched records</h2><span id="recordCount">No job loaded</span></div>
+          <div class="toolbar"><input id="searchRecords" placeholder="Search name, address, source..."/><select id="statusFilter"><option value="">All statuses</option><option>READY_TO_APPLY</option><option>REVIEW_REQUIRED</option><option>FIELD_CHECK</option><option>LOW_CONFIDENCE</option></select><button id="exportJsonBtn">Export JSON</button><button id="exportCsvBtn">Export CSV</button><button id="refreshLatestBtn2" onclick="document.getElementById('refreshLatestBtn').click()">Refresh</button></div>
+          <div id="sourceDiagnostics" class="sourceDiagnostics"></div>
+          <div class="recordsWrap"><table id="recordsTable"><thead><tr><th>Status</th><th>Score</th><th>Name</th><th>Bangla</th><th>Feature</th><th>Address</th><th>Source</th><th>Flags</th></tr></thead><tbody></tbody></table></div>
+        </div>
+        <div class="card detail" id="recordDetail"><h3>Record detail</h3><p>Select a record row.</p></div>
+      </section>
+      <section class="view hidden" id="view-conflicts">
+        <div class="card full"><div class="cardHead"><h2>Conflict board</h2><span>Google vs Barikoi vs OSM agreement checks</span></div><div id="conflictList" class="conflictList"></div></div>
+      </section>
+      <section class="view hidden" id="view-apply">
+        <div class="card full">
+          <div class="cardHead"><h2>Apply payload</h2><span>Map Customizer safe autofill format</span></div>
+          <div class="actions"><button class="primary" id="downloadApplyBtn">Download Apply JSON</button><button id="copyApplyBtn">Copy Apply JSON</button></div>
+          <pre class="apply" id="applyBox">No payload generated yet.</pre>
+        </div>
+      </section>
+      <section class="view hidden" id="view-settings">
+        <div class="grid two">
+          <div class="card"><div class="cardHead"><h2>API diagnostics</h2><span>keys are read from server environment variables</span></div>
+            <div class="tip">Google and Barikoi API keys are handled by the backend environment. This page only checks API health and saves non-secret safety/template settings.</div>
+            <input id="googleKey" type="hidden" /><input id="barikoiKey" type="hidden" />
+            <div class="formGrid single"><label>Google daily safety limit<input id="googleLimit" value="50" /></label><label>Barikoi daily safety limit<input id="barikoiLimit" value="100" /></label></div>
+            <div class="actions"><button class="primary" id="saveSettingsBtn">Save Diagnostics Settings</button><button id="loadSettingsBtn">Load Diagnostics</button><button id="testGoogleBtn">Test Google</button><button id="testBarikoiBtn">Test Barikoi</button></div><pre class="log" id="settingsLog">Settings not loaded.</pre>
+          </div>
+          <div class="card"><div class="cardHead"><h2>Barikoi endpoint templates</h2><span>adjust if your plan uses different endpoint URL</span></div>
+            <label>Reverse template<textarea id="barikoiReverse" rows="2"></textarea></label>
+            <label>Generic nearby template<textarea id="barikoiGeneric" rows="2"></textarea></label>
+            <label>Nearby category template<textarea id="barikoiNearby" rows="2"></textarea></label>
+            <label>Autocomplete template<textarea id="barikoiAutocomplete" rows="2"></textarea></label>
+            <label>Search template<textarea id="barikoiSearch" rows="2"></textarea></label>
+            <div class="tip">Supported tokens: {key}, {lat}, {lng}, {radius}, {radiusKm}, {limit}, {category}, {query}</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="/public/app.js"></script>
+</body>
+</html>
