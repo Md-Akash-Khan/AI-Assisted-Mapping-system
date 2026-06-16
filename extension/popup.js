@@ -6,6 +6,19 @@ async function backend() {
   const d = await chrome.storage.sync.get(['backendUrl']);
   return (d.backendUrl || 'http://localhost:3000').replace(/\/$/, '');
 }
+async function savedKeys() {
+  return await chrome.storage.local.get(['googleApiKey', 'barikoiApiKey']);
+}
+async function syncKeysIfBackendMissing(healthJson) {
+  const k = await savedKeys();
+  const body = {};
+  if (k.googleApiKey && !(healthJson.keys && healthJson.keys.googleConfigured)) body.googleApiKey = k.googleApiKey;
+  if (k.barikoiApiKey && !(healthJson.keys && healthJson.keys.barikoiConfigured)) body.barikoiApiKey = k.barikoiApiKey;
+  if (!Object.keys(body).length) return { synced:false };
+  const b = await backend();
+  const r = await fetch(b + '/api/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+  return { synced:r.ok, status:r.status };
+}
 function log(x) { $('status').textContent = typeof x === 'string' ? x : JSON.stringify(x, null, 2); }
 async function activeTab() { const [tab] = await chrome.tabs.query({ active: true, currentWindow: true }); return tab; }
 function approxBounds(lat, lng, radius) {
@@ -19,7 +32,19 @@ function showCurrentApply() {
   log({ queue:`${idx+1}/${apply.length}`, currentRecord:{ name:r.name, name_bn:r.name_bn, featureType:r.featureType, address:r.address, lat:r.lat, lng:r.lng, confidence:r.confidence, status:r.status }, instruction:'Draw/select the matching map object, choose feature type manually if needed, then click Fill Next Approved Record.' });
 }
 $('check').onclick = async () => {
-  try { const b = await backend(); const r = await fetch(b + '/api/health'); log(await r.json()); }
+  try {
+    const b = await backend();
+    const r = await fetch(b + '/api/health');
+    const h = await r.json();
+    const sync = await syncKeysIfBackendMissing(h).catch(e => ({ synced:false, error:e.message }));
+    if (sync.synced) {
+      const r2 = await fetch(b + '/api/health');
+      const h2 = await r2.json();
+      log({ ...h2, autoSyncedKeysFromExtension:true });
+    } else {
+      log({ ...h, autoSync:sync });
+    }
+  }
   catch (e) { log('Backend error: ' + e.message); }
 };
 $('dash').onclick = async () => chrome.tabs.create({ url: (await backend()) + '/dashboard' });
@@ -40,6 +65,7 @@ $('send').onclick = async () => {
   try {
     if (!lastCapture || !lastCapture.centerLat) { log('Capture first. If center missing, open Map Customizer/OSM/Google Maps with the target zone visible.'); return; }
     const b = await backend();
+    const keys = await savedKeys();
     const body = {
       name: $('area').value || lastCapture.title || 'Captured zone',
       centerLat: lastCapture.centerLat,
@@ -49,7 +75,9 @@ $('send').onclick = async () => {
       roadHint: $('road').value,
       googleTypes: 'school,restaurant,cafe,pharmacy,hospital,bank,supermarket,shopping_mall',
       googleKeywords: 'office, software company, shop',
-      barikoiCategories: 'school,restaurant,shop,pharmacy,hospital,bank,mosque,office'
+      barikoiCategories: 'school,restaurant,shop,pharmacy,hospital,bank,mosque,office',
+      googleApiKey: keys.googleApiKey || undefined,
+      barikoiApiKey: keys.barikoiApiKey || undefined
     };
     log('Sending zone fetch...');
     const r = await fetch(b + '/api/zones/fetch', { method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify(body) });
