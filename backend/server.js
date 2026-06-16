@@ -6,7 +6,35 @@ const crypto = require('crypto');
 const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
 const PUBLIC = path.join(ROOT, 'public');
-const STORAGE = path.join(ROOT, 'storage');
+
+// Persistent storage resolver.
+// Local/dev keeps the old backend/storage path exactly as before.
+// Render production can persist data if you mount a persistent disk and set
+// DATA_DIR=/var/data/map-zone-intelligence or MAP_ZONE_DATA_DIR=/var/data/map-zone-intelligence.
+// Without a persistent disk, Render's filesystem is temporary, so fetched jobs
+// can disappear after restart/redeploy. This keeps UI unchanged but fixes the
+// backend storage path problem when a disk/env is configured.
+function canUseDir(dir) {
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    const test = path.join(dir, '.write-test');
+    fs.writeFileSync(test, 'ok');
+    fs.unlinkSync(test);
+    return true;
+  } catch { return false; }
+}
+function resolveStorageDir() {
+  const candidates = [
+    process.env.MAP_ZONE_DATA_DIR,
+    process.env.DATA_DIR,
+    process.env.RENDER_DISK_PATH,
+    fs.existsSync('/var/data') ? '/var/data/map-zone-intelligence-v3' : '',
+    path.join(ROOT, 'storage')
+  ].filter(Boolean);
+  for (const dir of candidates) if (canUseDir(dir)) return dir;
+  return path.join(ROOT, 'storage');
+}
+const STORAGE = resolveStorageDir();
 const ZONES = path.join(STORAGE, 'zones');
 const CONFIG_FILE = path.join(STORAGE, 'config.json');
 const USAGE_FILE = path.join(STORAGE, 'usage.json');
@@ -19,9 +47,24 @@ function writeJson(file, data) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
+function envConfig() {
+  const out = {};
+  const googleKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_MAPS_API_KEY || process.env.MAPS_API_KEY;
+  const barikoiKey = process.env.BARIKOI_API_KEY || process.env.BARIKOI_KEY;
+  if (googleKey) out.googleApiKey = googleKey;
+  if (barikoiKey) out.barikoiApiKey = barikoiKey;
+  if (process.env.GOOGLE_DAILY_LIMIT) out.googleDailySafetyLimit = Number(process.env.GOOGLE_DAILY_LIMIT);
+  if (process.env.BARIKOI_DAILY_LIMIT) out.barikoiDailySafetyLimit = Number(process.env.BARIKOI_DAILY_LIMIT);
+  if (process.env.FETCH_GOOGLE) out.fetchGoogle = !/^false|0|no$/i.test(process.env.FETCH_GOOGLE);
+  if (process.env.FETCH_BARIKOI) out.fetchBarikoi = !/^false|0|no$/i.test(process.env.FETCH_BARIKOI);
+  if (process.env.FETCH_OSM) out.fetchOsm = !/^false|0|no$/i.test(process.env.FETCH_OSM);
+  return out;
+}
 function config() {
   const example = readJson(path.join(ROOT, 'config.example.json'), {});
-  return { ...example, ...readJson(CONFIG_FILE, {}) };
+  // Priority: defaults < saved config < environment variables.
+  // Env wins so Render keys stay permanent after dashboard reload/redeploy.
+  return { ...example, ...readJson(CONFIG_FILE, {}), ...envConfig() };
 }
 function maskKey(k) { return k ? `${k.slice(0, 6)}...${k.slice(-4)}` : ''; }
 function send(res, code, data, type='application/json') {
@@ -520,7 +563,7 @@ const server = http.createServer(async (req, res) => {
   try {
     if (url.pathname === '/' || url.pathname === '/dashboard' || url.pathname === '/dashboard/') return serveFile(res, path.join(PUBLIC, 'index.html'));
     if (url.pathname.startsWith('/public/')) return serveFile(res, path.join(ROOT, url.pathname));
-    if (url.pathname === '/api/health') { const c=config(); return send(res, 200, { ok:true, name:'Map Zone Intelligence V3', time:new Date().toISOString(), keys:{googleConfigured:!!c.googleApiKey, barikoiConfigured:!!c.barikoiApiKey}, usage:usage()[today()] || {google:0,barikoi:0,osm:0} }); }
+    if (url.pathname === '/api/health') { const c=config(); return send(res, 200, { ok:true, name:'Map Zone Intelligence V3', time:new Date().toISOString(), keys:{googleConfigured:!!c.googleApiKey, barikoiConfigured:!!c.barikoiApiKey, googleFromEnv:!!envConfig().googleApiKey, barikoiFromEnv:!!envConfig().barikoiApiKey}, storage:{dir:STORAGE, persistent:/^\/var\/data/.test(STORAGE) || !!process.env.DATA_DIR || !!process.env.MAP_ZONE_DATA_DIR || !!process.env.RENDER_DISK_PATH}, usage:usage()[today()] || {google:0,barikoi:0,osm:0} }); }
     if (url.pathname === '/api/settings' && req.method === 'GET') { const c = config(); return send(res, 200, { ...c, googleApiKey:maskKey(c.googleApiKey), barikoiApiKey:maskKey(c.barikoiApiKey) }); }
     if (url.pathname === '/api/settings' && req.method === 'POST') { const body = await readBody(req); const old = readJson(CONFIG_FILE, {}); const next = { ...old, ...body }; if (!body.googleApiKey && old.googleApiKey) next.googleApiKey = old.googleApiKey; if (!body.barikoiApiKey && old.barikoiApiKey) next.barikoiApiKey = old.barikoiApiKey; writeJson(CONFIG_FILE, next); return send(res, 200, { ok:true, settings:{...next, googleApiKey:maskKey(next.googleApiKey), barikoiApiKey:maskKey(next.barikoiApiKey)} }); }
     if (url.pathname === '/api/debug/google' && req.method === 'POST') {
